@@ -158,7 +158,7 @@ commands you need at once.
 L<Info about telnet on Netgear routers in the OpenWRT
 wiki|http://wiki.openwrt.org/toh/netgear/telnet.console>,
 L<Netgear::Telnet::Packet documentation|Netgear::Telnet::Packet>
-documentation on how to create packets.
+on how to create packets.
 
 =head1 AUTHOR
 
