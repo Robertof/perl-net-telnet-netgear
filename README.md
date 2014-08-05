@@ -11,13 +11,15 @@ More information is available [on the OpenWRT wiki page](http://wiki.openwrt.org
 Synopsis
 -------
 
-    use Netgear::Telnet;
-    my $packet = Netgear::Telnet::Packet->new(mac => "AA:BB:CC:DD:EE");
-    my $client = Netgear::Telnet->new(ip => "10.0.0.0", packet => $packet);
-    # Some example commands (may not work on all routers)
-    my $router_date = $client->send_commands("date");
-    my $adsl_status = $client->send_commands([ "adslctl", "info" ]);
-    my $my_identity = $client->send_commands("whoami", [ "echo", '$USER' ]);
+```perl
+use Netgear::Telnet;
+my $packet = Netgear::Telnet::Packet->new(mac => "AA:BB:CC:DD:EE");
+my $client = Netgear::Telnet->new(ip => "10.0.0.0", packet => $packet);
+# Some example commands (may not work on all routers)
+my $router_date = $client->send_commands("date");
+my $adsl_status = $client->send_commands([ "adslctl", "info" ]);
+my $my_identity = $client->send_commands("whoami", [ "echo", '$USER' ]);
+```
 
 Methods
 -------
