@@ -52,7 +52,7 @@ plan skip_all => $port if $port =~ /^\D+$/;
 plan tests => scalar @tests;
 
 # Skip UDP tests if we can't receive messages on the port we got before.
-my $udp_ok = setup_socket (proto => 'udp', port => $port, code => \&handle_udp_messages);
+my $udp_ok = setup_socket proto => 'udp', port => $port, code => \&handle_udp_messages;
 
 # Pre-generate the packet.
 my $packet = Net::Telnet::Netgear::Packet->new (@packet_gen_args)->get_packet;
@@ -65,10 +65,11 @@ foreach my $test (@tests)
             # Skip UDP tests if $udp_ok isn't 1
             skip $udp_ok, 1 if $test->{protocol} eq "udp" && $udp_ok ne 1;
             # Kick incoming clients on the TCP socket (which will be closed)
+            lock ($tcp_client_action);
             $tcp_client_action = ACTION_KICK_CLIENTS;
             # Close the TCP socket
             POSIX::close $sockets{tcp};
-        } else { $tcp_client_action = ACTION_REQUEST_PACKET }
+        } else { lock ($tcp_client_action); $tcp_client_action = ACTION_REQUEST_PACKET }
         my $client = Net::Telnet::Netgear->new (
             packet_send_mode => $test->{send_mode},
             packet_content   => $packet,
@@ -104,6 +105,7 @@ sub handle_tcp_connection
     my $sock = shift;
     while (my $client = $sock->accept())
     {
+        lock ($tcp_client_action);
         if ($tcp_client_action == ACTION_REQUEST_PACKET)
         {
             binmode $client;
@@ -141,6 +143,8 @@ sub handle_udp_messages
             my $r = setup_socket proto => 'tcp', port => $port, code => \&handle_tcp_connection;
             return diag ("Can't re-open the TCP socket: $r") if $r ne 1;
             # Tell the socket that he can let the client go
+            lock ($tcp_client_action);
+            print "UDP packet OK\n";
             $tcp_client_action = ACTION_ACCEPT_CLIENTS;
         }
     }
