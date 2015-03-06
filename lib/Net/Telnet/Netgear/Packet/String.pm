@@ -1,16 +1,17 @@
 #!/usr/bin/env perl
-package Netgear::Telnet::Packet::String;
+package Net::Telnet::Netgear::Packet::String;
 use strict;
 use warnings;
+use parent "Net::Telnet::Netgear::Packet";
 use Carp;
 use MIME::Base64;
 
-our @CARP_NOT = qw ( Netgear::Telnet::Packet );
+our @CARP_NOT = qw ( Net::Telnet::Netgear::Packet );
 
 sub new
 {
     my ($self, $content, $is_base64) = @_;
-    croak "Did you forget something? (no packet)" unless defined $content;
+    Carp::croak "The Telnet packet is missing." unless defined $content;
     bless { is_base64 => defined $is_base64, content => $content }, $self;
 }
 
