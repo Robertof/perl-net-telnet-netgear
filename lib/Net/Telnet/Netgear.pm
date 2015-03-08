@@ -1,4 +1,4 @@
-package Net::Telnet::Netgear 0.01;
+package Net::Telnet::Netgear 0.02;
 use strict;
 use warnings;
 use warnings::register;
