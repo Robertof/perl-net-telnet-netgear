@@ -5,9 +5,11 @@ use Test::More;
 
 # Configuration
 my %mutators     = (
-    exit_on_destroy  => 1,
-    packet_send_mode => 'tcp',
-    packet           => 'test it off, test it off'
+    exit_on_destroy     => 1,
+    packet_delay        => 5.001,
+    packet_wait_timeout => 1.5,
+    packet_send_mode    => 'tcp',
+    packet              => 'test it off, test it off'
 );
 my @packet_impl  = qw/Net::Telnet::Netgear::Packet::Native Net::Telnet::Netgear::Packet::String/;
 

@@ -3,32 +3,25 @@ use strict;
 use warnings;
 use ExtUtils::MakeMaker;
 
-# Had to use tabs here. Sorry guys.
-
 WriteMakefile (
-	AUTHOR           => 'Roberto Frenna <robertof.public@gmail.com>',
-	NAME             => 'Net::Telnet::Netgear',
-	VERSION_FROM     => 'lib/Net/Telnet/Netgear.pm',
-	ABSTRACT         => 'Generate and send Netgear Telnet-enable packets through Net::Telnet',
-	LICENSE          => 'artistic_2',
-	PREREQ_PM        => {
-		map { $_ => 0 } qw(Carp Crypt::Blowfish Crypt::ECB Digest::MD5 IO::Socket::INET),
-						qw(MIME::Base64 Net::Telnet POSIX Scalar::Util)
-	},
-	(eval { ExtUtils::MakeMaker->VERSION(6.64) } ?
-		(TEST_REQUIRES => {
-			POSIX => 0
-		}) : ()
-	),
-	(eval { ExtUtils::MakeMaker->VERSION(6.46) } ?
-	   (META_MERGE => {
-			resources => {
-				license    => 'http://www.opensource.org/licenses/artistic-license-2.0',
-				bugtracker => 'https://github.com/Robertof/perl-net-telnet-netgear/issues',
-				repository => 'https://github.com/Robertof/perl-net-telnet-netgear'
-			} 
-		}) : ()
-	)
+    AUTHOR           => 'Roberto Frenna <robertof.public@gmail.com>',
+    NAME             => 'Net::Telnet::Netgear',
+    VERSION_FROM     => 'lib/Net/Telnet/Netgear.pm',
+    ABSTRACT         => 'Generate and send Netgear Telnet-enable packets through Net::Telnet',
+    LICENSE          => 'artistic_2',
+    PREREQ_PM        => {
+        map { $_ => 0 } qw(Carp Crypt::Blowfish Crypt::ECB Digest::MD5 IO::Socket::INET),
+                        qw(MIME::Base64 Net::Telnet POSIX Scalar::Util)
+    },
+    (eval { ExtUtils::MakeMaker->VERSION(6.46) } ?
+       (META_MERGE => {
+            resources => {
+                license    => 'http://www.opensource.org/licenses/artistic-license-2.0',
+                bugtracker => 'https://github.com/Robertof/perl-net-telnet-netgear/issues',
+                repository => 'https://github.com/Robertof/perl-net-telnet-netgear'
+            } 
+        }) : ()
+    )
 );
 
 # Create the target "README.md" used to generate the markdown version of the POD documentation.
@@ -37,9 +30,9 @@ WriteMakefile (
 # makefile to do the same thing.
 sub MY::postamble
 {
-	my $self = shift;
-	<<END_MAKE;
+    my $self = shift;
+    <<END_MAKE;
 README.md: $self->{VERSION_FROM}
-	\$(PERLRUN) gen_doc.pl $self->{VERSION_FROM}
+\t\$(PERLRUN) gen_doc $self->{VERSION_FROM}
 END_MAKE
 }

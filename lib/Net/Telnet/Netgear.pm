@@ -43,7 +43,7 @@ sub new
                 ( # Match either keys that begin with 'packet_' and
                     packet_(
                         # are one of the following,
-                        mac|username|password|content|base64|instance|wait_timeout|send_mode
+                        mac|username|password|content|base64|instance|wait_timeout|delay|send_mode
                     )|
                     # Or keys that do not start with 'packet_' and are one of the following.
                     host|fhopen
@@ -95,7 +95,7 @@ sub new
         # Parse the packet send mode, if specified.
         if (exists $packetinfo{send_mode})
         {
-            _sanitize_packet_send_mode ($packetinfo{send_mode});
+            _sanitize_packet_send_mode ($packetinfo{send_mode}); # Croaks if it's invalid
             $settings->{packet_send_mode} = $packetinfo{send_mode};
         }
         @_ = %args; # Magic? Nope, Perl. (hint: an hash is an unsorted array)
@@ -113,8 +113,10 @@ sub new
     *$self->{net_telnet_netgear} = {
         %$settings,
         packet  => defined $packet && $packet->can ("get_packet") ? $packet->get_packet : undef,
-        timeout => $packetinfo{wait_timeout} || 1 # Default timeout
     };
+    # Set packet_delay and packet_wait_timeout
+    $self->packet_delay ($packetinfo{delay} // .3); # default value only if not defined (may be 0)
+    $self->packet_wait_timeout ($packetinfo{wait_timeout} || 1);
     # Restore the keys we previously removed.
     if (exists $removed_keys{fhopen})
     {
@@ -145,7 +147,7 @@ sub open
     # unfortunately $self->SUPER::$method does not work. :(
     return $self->SUPER::open (splice @_, 1)
         if (caller)[0] eq __PACKAGE__ && @_ > 0 && $_[0] eq -callparent;
-    # Call our magical wrapper method.
+    # Call our magical method.
     _open_method ($self, "open", @_);
 }
 
@@ -157,7 +159,7 @@ sub fhopen
     # unfortunately $self->SUPER::$method does not work. :(
     return $self->SUPER::fhopen (splice @_, 1)
         if (caller)[0] eq __PACKAGE__ && @_ > 0 && $_[0] eq -callparent;
-    # Call our magical wrapper method.
+    # Call our magical method.
     _open_method ($self, "fhopen", @_);
 }
 
@@ -178,6 +180,13 @@ sub exit_on_destroy
     _mutator (shift, name => "exit_on_destroy", new => shift, sanitizer => sub { !!$_ });
 }
 
+sub packet_delay
+{
+    _mutator (shift, name => "delay", new => shift, sanitizer => sub {
+        _sanitize_numeric_val ("packet_delay")
+    });
+}
+
 sub packet_send_mode
 {
     _mutator (shift, name => "packet_send_mode", new => shift,
@@ -187,9 +196,7 @@ sub packet_send_mode
 sub packet_wait_timeout
 {
     _mutator (shift, name => "timeout", new => shift, sanitizer => sub {
-        Carp::croak "ERROR: packet_wait_timeout must be a number"
-            unless /^-?\d+(?:\.\d+)?$/;
-        $_;
+        _sanitize_numeric_val ("packet_wait_timeout")
     });
 }
 
@@ -220,6 +227,15 @@ sub _mutator
         $s->{$conf{name}} = $conf{new};
     }
     $prev;
+}
+
+# Sanitizes numeric values.
+sub _sanitize_numeric_val
+{
+    my $param = shift;
+    Carp::croak "ERROR: $param must be a number"
+        unless /^-?\d+(?:\.\d+)?$/;
+    $_;
 }
 
 # Sanitizes the packet send mode.
@@ -293,6 +309,8 @@ sub _udp_send_packet
     $sock->send ($s->{packet})
         || return $self->error ("Can't send the packet to $host:$port (UDP): $!");
     close $sock;
+    # Wait packet_delay seconds.
+    select undef, undef, undef, $self->packet_delay;
 }
 
 # The internal function used to handle the *open calls.
@@ -341,7 +359,9 @@ sub _open_method
     }
     # Call the original method and get the return value.
     # This does not cause infinite recursion thanks to '-callparent' and the magical check.
-    my $v = $self->$method (-callparent, @params);
+    # Use unshift to propagate '-callparent' to every other call. This is important!!!
+    unshift @params, -callparent;
+    my $v = $self->$method (@params);
     # No packet, no party.
     return $v unless defined $s->{packet};
     if ($v && $self->packet_send_mode ne "udp")
@@ -357,7 +377,7 @@ sub _open_method
             $self->close;
             # Wait for a bit. (it's Netgear's fault)
             # FIXME: check how far this timeout can be pushed down
-            select undef, undef, undef, 0.30;
+            select undef, undef, undef, $self->packet_delay;
             # Re-open. If we can't read again, then I have bad news.
             return $self->error ("Can't reopen the socket after sending the Telnet packet.")
                 unless $self->$method (@params);
@@ -436,7 +456,7 @@ ones.
 
     my $instance = Net::Telnet::Netgear->new (%options);
 
-Creates a new C<Net::Telnet::Netgear> instance.
+Creates a new C<Net::Telnet::Netgear> instance. Returns C<undef> on failure.
 
 C<%options> can contain any of the options valid with the constructor of L<Net::Telnet>,
 with the addition of:
@@ -484,9 +504,17 @@ B<NOTE:> Packets generated with L<Net::Telnet::Netgear::Packet/"new">,
 L<Net::Telnet::Netgear::Packet/"from_string"> and L<Net::Telnet::Netgear::Packet/"from_base64">
 can be used too.
 
+=item * C<< packet_delay => .50 >>
+
+The amount of time, in seconds, to wait after sending the packet.
+In pseudo-code: C<send_packet(); wait(packet_delay); connect()>
+
+Defaults to C<.3> seconds, or 300 milliseconds. Can be C<0>.
+
 =item * C<< packet_wait_timeout => .75 >>
 
 The amount of time, in seconds, to wait for a response from the server before sending the packet.
+In pseudo-code: C<connect(); if !can_read(in packet_wait_timeout seconds) then send_packet()>
 
 Only effective when the packet is sent using TCP. Defaults to C<1> second.
 
@@ -530,7 +558,7 @@ See L</"DEFAULT VALUES USING %NETGEAR_DEFAULTS">.
 =head2 exit_on_destroy
 
     my $current_value = $instance->exit_on_destroy;
-    # sets exit_on_destroy to 1
+    # Set exit_on_destroy to 1
     my $old_value = $instance->exit_on_destroy (1);
 
 Gets or sets the value of the boolean flag C<exit_on_destroy>, which causes the module to send
@@ -540,7 +568,7 @@ a Telnet connection without killing the shell first.
 =head2 packet
 
     my $current_value = $instance->packet;
-    # sets the content of the packet to '...'
+    # Set the content of the packet to '...'
     my $old_value = $instance->packet ('...');
 
 Gets or sets the value of the packet B<as a string>. This is basically equivalent to the
@@ -549,10 +577,18 @@ C<packet_content> constructor parameter.
 Note that objects cannot be used - you have to call L<Net::Telnet::Netgear::Packet/"get_packet">
 before passing the value to this method.
 
+=head2 packet_delay
+
+    my $current_value = $instance->packet_delay;
+    # Set packet_delay to .75 seconds
+    my $old_value = $instance->packet_delay (.75);
+
+Gets or sets the amount of time, in seconds, to wait after sending the packet.
+
 =head2 packet_send_mode
 
     my $current_value = $instance->packet_send_mode;
-    # sets packet_send_mode to 'udp'
+    # Set packet_send_mode to 'udp'
     my $old_value = $instance->packet_send_mode ('udp');
 
 Gets or sets the protocol used to send the packet, between C<tcp>, C<udp> and C<auto>.
@@ -573,7 +609,7 @@ the packet has to be sent using UDP (due to the additional connection that has t
 =head2 packet_wait_timeout
 
     my $current_value = $instance->packet_wait_timeout;
-    # sets packet_wait_timeout to 1.25
+    # Set packet_wait_timeout to 1.25
     my $old_value = $instance->packet_wait_timeout (1.25);
 
 Gets or sets the the amount of time, in seconds, to wait for a response from the server before

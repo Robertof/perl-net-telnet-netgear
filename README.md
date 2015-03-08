@@ -49,7 +49,7 @@ ones.
 my $instance = Net::Telnet::Netgear->new (%options);
 ```
 
-Creates a new `Net::Telnet::Netgear` instance.
+Creates a new `Net::Telnet::Netgear` instance. Returns `undef` on failure.
 
 `%options` can contain any of the options valid with the constructor of [Net::Telnet](https://metacpan.org/pod/Net::Telnet),
 with the addition of:
@@ -95,9 +95,17 @@ with the addition of:
     ["from\_string" in Net::Telnet::Netgear::Packet](https://metacpan.org/pod/Net::Telnet::Netgear::Packet#from_string) and ["from\_base64" in Net::Telnet::Netgear::Packet](https://metacpan.org/pod/Net::Telnet::Netgear::Packet#from_base64)
     can be used too.
 
+- `packet_delay => .50`
+
+    The amount of time, in seconds, to wait after sending the packet.
+    In pseudo-code: `send_packet(); wait(packet_delay); connect()`
+
+    Defaults to `.3` seconds, or 300 milliseconds. Can be `0`.
+
 - `packet_wait_timeout => .75`
 
     The amount of time, in seconds, to wait for a response from the server before sending the packet.
+    In pseudo-code: `connect(); if !can_read(in packet_wait_timeout seconds) then send_packet()`
 
     Only effective when the packet is sent using TCP. Defaults to `1` second.
 
@@ -142,7 +150,7 @@ See ["DEFAULT VALUES USING %NETGEAR\_DEFAULTS"](#default-values-using-netgear_de
 
 ```perl
 my $current_value = $instance->exit_on_destroy;
-# sets exit_on_destroy to 1
+# Set exit_on_destroy to 1
 my $old_value = $instance->exit_on_destroy (1);
 ```
 
@@ -154,7 +162,7 @@ a Telnet connection without killing the shell first.
 
 ```perl
 my $current_value = $instance->packet;
-# sets the content of the packet to '...'
+# Set the content of the packet to '...'
 my $old_value = $instance->packet ('...');
 ```
 
@@ -164,11 +172,21 @@ Gets or sets the value of the packet **as a string**. This is basically equivale
 Note that objects cannot be used - you have to call ["get\_packet" in Net::Telnet::Netgear::Packet](https://metacpan.org/pod/Net::Telnet::Netgear::Packet#get_packet)
 before passing the value to this method.
 
+## packet\_delay
+
+```perl
+my $current_value = $instance->packet_delay;
+# Set packet_delay to .75 seconds
+my $old_value = $instance->packet_delay (.75);
+```
+
+Gets or sets the amount of time, in seconds, to wait after sending the packet.
+
 ## packet\_send\_mode
 
 ```perl
 my $current_value = $instance->packet_send_mode;
-# sets packet_send_mode to 'udp'
+# Set packet_send_mode to 'udp'
 my $old_value = $instance->packet_send_mode ('udp');
 ```
 
@@ -191,7 +209,7 @@ the packet has to be sent using UDP (due to the additional connection that has t
 
 ```perl
 my $current_value = $instance->packet_wait_timeout;
-# sets packet_wait_timeout to 1.25
+# Set packet_wait_timeout to 1.25
 my $old_value = $instance->packet_wait_timeout (1.25);
 ```
 

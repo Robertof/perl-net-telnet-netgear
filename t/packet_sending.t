@@ -2,13 +2,12 @@
 use strict;
 use warnings;
 use Net::Telnet::Netgear;
-use POSIX (); # for POSIX::close
 use Test::More;
 use subs 'setup_socket';
 use constant {
     ACTION_ACCEPT_CLIENTS   => 0,
     ACTION_REQUEST_PACKET   => 1,
-    ACTION_KICK_CLIENTS     => 2
+    ACTION_SHUTDOWN         => 2
 };
 
 # Configuration
@@ -41,7 +40,6 @@ BEGIN {
 };
 
 # Storage variables
-my %sockets :shared; # contains the file descriptors of the sockets
 my $tcp_client_action :shared; # boolean
 my $loopback_ip = IO::Socket::INET::inet_ntoa (IO::Socket::INET::INADDR_LOOPBACK); # IP address
 # setup_socket returns a port number when the argument 'port' is not specified
@@ -49,9 +47,9 @@ my $port = setup_socket proto => 'tcp', code => \&handle_tcp_connection;
 
 # Skip everything if we can't bind to a random TCP port.
 plan skip_all => $port if $port =~ /^\D+$/;
-plan tests => scalar @tests;
+plan tests => 2 * @tests;
 
-# Skip UDP tests if we can't receive messages on the port we got before.
+# Prepare to skip UDP tests if we can't receive messages on the port we got before.
 my $udp_ok = setup_socket proto => 'udp', port => $port, code => \&handle_udp_messages;
 
 # Pre-generate the packet.
@@ -63,27 +61,30 @@ foreach my $test (@tests)
         if ($test->{protocol} eq "udp")
         {
             # Skip UDP tests if $udp_ok isn't 1
-            skip $udp_ok, 1 if $test->{protocol} eq "udp" && $udp_ok ne 1;
+            skip $udp_ok, 2 if $test->{protocol} eq "udp" && $udp_ok ne 1;
             # Kick incoming clients on the TCP socket (which will be closed)
             lock ($tcp_client_action);
-            $tcp_client_action = ACTION_KICK_CLIENTS;
-            # Close the TCP socket
-            POSIX::close $sockets{tcp};
-        } else { lock ($tcp_client_action); $tcp_client_action = ACTION_REQUEST_PACKET }
+            $tcp_client_action = ACTION_SHUTDOWN;
+            # Let the TCP socket close itself
+            IO::Socket::INET->new ("$loopback_ip:$port")->close;
+        }
+        else
+        {
+            lock ($tcp_client_action);
+            $tcp_client_action = ACTION_REQUEST_PACKET;
+        }
         my $client = Net::Telnet::Netgear->new (
             packet_send_mode => $test->{send_mode},
             packet_content   => $packet,
             host             => $loopback_ip,
             port             => $port
         );
+        isa_ok $client, 'Net::Telnet::Netgear'; # because new returns undef on failure
         is $client->getline, "OK\n", 'packet sent correctly with send_mode = ' .
             $test->{send_mode} . ' & proto = ' . $test->{protocol};
         $client->close;
     }
 }
-
-# Cleanup
-POSIX::close $_ foreach values %sockets;
 
 sub setup_socket
 {
@@ -94,8 +95,6 @@ sub setup_socket
         Proto     => $conf{proto},
         $conf{proto} eq "tcp" ? (Listen => 1, ReuseAddr => 1) : ()
     ) || return "can't listen to INADDR_LOOPBACK: $!";
-    # Save the file descriptor of the created socket in %sockets
-    $sockets{$conf{proto}} = fileno $sock;
     threads->create ($conf{code}, $sock)->detach;
     exists $conf{port} ? 1 : $sock->sockport();
 }
@@ -120,11 +119,10 @@ sub handle_tcp_connection
             $tcp_client_action = ACTION_ACCEPT_CLIENTS;
             next;
         }
-        elsif ($tcp_client_action == ACTION_KICK_CLIENTS)
+        elsif ($tcp_client_action == ACTION_SHUTDOWN)
         {
-            # get the client out of here
-            print $client "UDP packet not received!\n";
-            next;
+            close $sock;
+            return;
         }
         # $tcp_client_action == ACTION_ACCEPT_CLIENTS, reply with "OK"
         print $client "OK\n";
@@ -142,9 +140,8 @@ sub handle_udp_messages
             # Re-open the TCP socket with the port defined before
             my $r = setup_socket proto => 'tcp', port => $port, code => \&handle_tcp_connection;
             return diag ("Can't re-open the TCP socket: $r") if $r ne 1;
-            # Tell the socket that he can let the client go
+            # Clients are now allowed
             lock ($tcp_client_action);
-            print "UDP packet OK\n";
             $tcp_client_action = ACTION_ACCEPT_CLIENTS;
         }
     }
@@ -152,5 +149,5 @@ sub handle_udp_messages
 
 sub packet_ok
 {
-    Digest::SHA::sha1_hex (shift) eq $packet_sha1;
+    Digest::SHA::sha1_hex (@_) eq $packet_sha1;
 }
