@@ -339,7 +339,8 @@ TCP.
 # See also
 
 [Net::Telnet](https://metacpan.org/pod/Net::Telnet), [Net::Telnet::Netgear::Packet](https://metacpan.org/pod/Net::Telnet::Netgear::Packet),
-[http://wiki.openwrt.org/toh/netgear/telnet.console](http://wiki.openwrt.org/toh/netgear/telnet.console)
+[http://wiki.openwrt.org/toh/netgear/telnet.console](http://wiki.openwrt.org/toh/netgear/telnet.console),
+[https://github.com/Robertof/perl-net-telnet-netgear](https://github.com/Robertof/perl-net-telnet-netgear)
 
 # Author
 

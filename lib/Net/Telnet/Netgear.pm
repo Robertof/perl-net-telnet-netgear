@@ -376,7 +376,6 @@ sub _open_method
             $self->put (string => $s->{packet}, binmode => 1, telnetmode => 0);
             $self->close;
             # Wait for a bit. (it's Netgear's fault)
-            # FIXME: check how far this timeout can be pushed down
             select undef, undef, undef, $self->packet_delay;
             # Re-open. If we can't read again, then I have bad news.
             return $self->error ("Can't reopen the socket after sending the Telnet packet.")
@@ -736,7 +735,8 @@ TCP.
 =head1 SEE ALSO
 
 L<Net::Telnet>, L<Net::Telnet::Netgear::Packet>,
-L<http://wiki.openwrt.org/toh/netgear/telnet.console>
+L<http://wiki.openwrt.org/toh/netgear/telnet.console>,
+L<https://github.com/Robertof/perl-net-telnet-netgear>
 
 =head1 AUTHOR
 

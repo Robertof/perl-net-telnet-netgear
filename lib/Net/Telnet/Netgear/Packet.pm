@@ -120,7 +120,8 @@ directly on this class).
 
 =head1 SEE ALSO
 
-L<Net::Telnet::Netgear>, L<http://wiki.openwrt.org/toh/netgear/telnet.console>.
+L<Net::Telnet::Netgear>, L<http://wiki.openwrt.org/toh/netgear/telnet.console>,
+L<https://github.com/Robertof/perl-net-telnet-netgear>.
 
 =head1 AUTHOR
 
