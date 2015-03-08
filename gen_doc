@@ -70,7 +70,6 @@ sub _end_head
     $text = ucfirst lc $text if lc $text ne $text;
     # Fix lowercase names that shouldn't be lowercase.
     $text =~ s/([$@%][^\s]+)/uc $1/e;
-    # Fix uppercase names that shouldn't be uppercase.
     $self->_save_block (join ' ', $h, $text);
 }
 

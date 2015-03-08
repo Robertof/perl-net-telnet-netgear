@@ -1,0 +1,12 @@
+0.02 2015-03-08
+  - New option: packet_delay, which specifies the amount of time to wait after
+    sending the packet. Defaults to 0.30 seconds, and can be 0.
+  - Critical fix in Net::Telnet::Netgear: a missing parameter could have caused
+    an infinite loop.
+  - Every test is now working correctly, on every OS.
+  - More tests.
+  - gen_doc.pl was installed with the module. This is now fixed.
+  - Makefile.PL is no longer using tabs :-)
+
+0.01 2015-03-06
+  - First release.
