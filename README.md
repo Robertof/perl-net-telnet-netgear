@@ -344,7 +344,7 @@ TCP.
 
 # Author
 
-Roberto Frenna (robertof DOT public AT gmail DOT com)
+Roberto Frenna (robertof AT cpan DOT org)
 
 # Thanks
 

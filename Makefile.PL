@@ -11,7 +11,7 @@ WriteMakefile (
     LICENSE          => 'artistic_2',
     PREREQ_PM        => {
         map { $_ => 0 } qw(Carp Crypt::Blowfish Crypt::ECB Digest::MD5 IO::Socket::INET),
-                        qw(MIME::Base64 Net::Telnet POSIX Scalar::Util)
+                        qw(MIME::Base64 Net::Telnet Scalar::Util)
     },
     (eval { ExtUtils::MakeMaker->VERSION(6.46) } ?
        (META_MERGE => {

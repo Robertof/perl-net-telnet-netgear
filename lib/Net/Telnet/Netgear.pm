@@ -1,4 +1,4 @@
-package Net::Telnet::Netgear 0.02;
+package Net::Telnet::Netgear;
 use strict;
 use warnings;
 use warnings::register;
@@ -7,6 +7,8 @@ use Carp;
 use IO::Socket::INET;
 use Net::Telnet::Netgear::Packet;
 use Scalar::Util ();
+
+our $VERSION = "0.03";
 
 # Whether to die when 'select' is not available. (see 'THE MAGIC BEHIND TIMEOUTS')
 our $DIE_ON_SELECT_UNAVAILABLE = 0;
@@ -319,6 +321,14 @@ sub _open_method
     my ($self, $method, @params) = @_;
     # Get access to our internals.
     my $s = *$self->{net_telnet_netgear};
+    # Fix 'select_supported' for older versions of Net::Telnet.
+    unless (exists *$self->{net_telnet}->{select_supported})
+    {
+        # Taken from the source code of Net::Telnet 3.04, search for 'select_supported'
+        *$self->{net_telnet}->{select_supported} = $method eq "open" ?
+            1 :
+            ($^O ne "MSWin32" || -S $self);
+    }
     # Handle the different packet_send_mode conditions, but only when we have a packet.
     if (defined $s->{packet})
     {
@@ -740,7 +750,7 @@ L<https://github.com/Robertof/perl-net-telnet-netgear>
 
 =head1 AUTHOR
 
-Roberto Frenna (robertof DOT public AT gmail DOT com)
+Roberto Frenna (robertof AT cpan DOT org)
 
 =head1 THANKS
 

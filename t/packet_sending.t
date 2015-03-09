@@ -67,6 +67,8 @@ foreach my $test (@tests)
             $tcp_client_action = ACTION_SHUTDOWN;
             # Let the TCP socket close itself
             IO::Socket::INET->new ("$loopback_ip:$port")->close;
+            # Wait a few seconds just to be sure
+            select undef, undef, undef, 1.5;
         }
         else
         {

@@ -125,7 +125,7 @@ L<https://github.com/Robertof/perl-net-telnet-netgear>.
 
 =head1 AUTHOR
 
-Roberto Frenna (robertof DOT public AT gmail DOT com)
+Roberto Frenna (robertof AT cpan DOT org)
 
 =head1 THANKS
 
