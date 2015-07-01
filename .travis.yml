@@ -1,11 +1,11 @@
 language: perl
 perl:
-  - "5.20-thr"
-  - "5.18-thr"
-  - "5.16-thr"
-  - "5.14-thr"
-  - "5.12-thr"
-  - "5.10-thr"
+  - "5.20.2-thr"
+  - "5.18.4-thr"
+  - "5.16.3-thr"
+  - "5.14.4-thr"
+  - "5.12.5-thr"
+  - "5.10.1-thr"
 install:
   - "cpanm -n Test::Fatal Test::Pod"
   - "cpanm -n --installdeps ."
