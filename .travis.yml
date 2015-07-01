@@ -6,6 +6,8 @@ perl:
   - "5.14.4-thr"
   - "5.12.5-thr"
   - "5.10.1-thr"
+before_install:
+  - eval $(curl https://travis-perl.github.io/init) --auto
 install:
   - "cpanm -n Test::Fatal Test::Pod"
   - "cpanm -n --installdeps ."
