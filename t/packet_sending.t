@@ -63,12 +63,14 @@ foreach my $test (@tests)
             # Skip UDP tests if $udp_ok isn't 1
             skip $udp_ok, 2 if $test->{protocol} eq "udp" && $udp_ok ne 1;
             # Kick incoming clients on the TCP socket (which will be closed)
-            lock ($tcp_client_action);
-            $tcp_client_action = ACTION_SHUTDOWN;
+            {
+                lock ($tcp_client_action);
+                $tcp_client_action = ACTION_SHUTDOWN;
+            }
             # Let the TCP socket close itself
-            IO::Socket::INET->new ("$loopback_ip:$port")->close;
-            # Wait a few seconds just to be sure
-            select undef, undef, undef, 1.5;
+            my $csock = IO::Socket::INET->new ("$loopback_ip:$port");
+            while (<$csock>) {}
+            $csock->close;
         }
         else
         {

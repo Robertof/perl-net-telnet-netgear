@@ -1,3 +1,11 @@
+0.04 2015-06-29
+  - The "Old Perl versions & Strange systems Update"
+  - Replaced the operator "//" with something friendlier to old Perls.
+  - Probably fixed, once and for all, the damned "packet_sending.t" test.
+    There was a deadlock. Which apparently didn't show on some systems.
+  - Travis-CI integration.
+  - Small fixups to the code comments.
+
 0.03 2015-03-09
   - Remove POSIX as a dependency, as it is no longer required.
   - Update the email address in the documentation.

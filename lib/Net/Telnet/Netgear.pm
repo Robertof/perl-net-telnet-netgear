@@ -8,7 +8,7 @@ use IO::Socket::INET;
 use Net::Telnet::Netgear::Packet;
 use Scalar::Util ();
 
-our $VERSION = "0.03";
+our $VERSION = "0.04";
 
 # Whether to die when 'select' is not available. (see 'THE MAGIC BEHIND TIMEOUTS')
 our $DIE_ON_SELECT_UNAVAILABLE = 0;
@@ -117,7 +117,7 @@ sub new
         packet  => defined $packet && $packet->can ("get_packet") ? $packet->get_packet : undef,
     };
     # Set packet_delay and packet_wait_timeout
-    $self->packet_delay ($packetinfo{delay} // .3); # default value only if not defined (may be 0)
+    $self->packet_delay (defined $packetinfo{delay} ? $packetinfo{delay} : .3);
     $self->packet_wait_timeout ($packetinfo{wait_timeout} || 1);
     # Restore the keys we previously removed.
     if (exists $removed_keys{fhopen})
@@ -145,7 +145,7 @@ sub open
 {
     my $self = shift;
     # If this method is being called from this package and it has '-callparent' as the first arg,
-    # then execute the implementation of the superclass of it. This is a work-around, because
+    # then execute the implementation of the superclass. This is a work-around, because
     # unfortunately $self->SUPER::$method does not work. :(
     return $self->SUPER::open (splice @_, 1)
         if (caller)[0] eq __PACKAGE__ && @_ > 0 && $_[0] eq -callparent;
@@ -157,7 +157,7 @@ sub fhopen
 {
     my $self = shift;
     # If this method is being called from this package and it has '-callparent' as the first arg,
-    # then execute the implementation of the superclass of it. This is a work-around, because
+    # then execute the implementation of the superclass. This is a work-around, because
     # unfortunately $self->SUPER::$method does not work. :(
     return $self->SUPER::fhopen (splice @_, 1)
         if (caller)[0] eq __PACKAGE__ && @_ > 0 && $_[0] eq -callparent;
@@ -255,7 +255,6 @@ sub _sanitize_packet_send_mode
 # -1 if an error occurred.
 sub _can_read
 {
-    # This is easy to implement if select is implemented, or tricky if it isn't.
     my ($self, $timeout) = @_;
     # Check if warnings are enabled. (-nowarnings as the second parameter disables warnings)
     my $should_warn = @_ < 3 || $_[2] ne -nowarnings;
@@ -279,7 +278,7 @@ sub _can_read
     {
         # We have two options: die horribly and let the user know about his shitty OS, or
         # return a fake value which disables the TCP packets of this module.
-        # Let the user pick... (with $DIE_ON_SELECT_UNAVAILABLE)
+        # Let the developer pick... (see $DIE_ON_SELECT_UNAVAILABLE)
         my $base_msg = $DIE_ON_SELECT_UNAVAILABLE ? "ERROR" : "WARNING";
         ($base_msg  .= <<ERROR_MSG) =~ s/^(\w*:?)\s+/$1/gm; # remove useless spaces
             : Unsupported platform detected (no select support).
@@ -322,10 +321,10 @@ sub _open_method
     # Get access to our internals.
     my $s = *$self->{net_telnet_netgear};
     # Fix 'select_supported' for older versions of Net::Telnet.
-    unless (exists *$self->{net_telnet}->{select_supported})
+    unless (exists *$self->{net_telnet}{select_supported})
     {
-        # Taken from the source code of Net::Telnet 3.04, search for 'select_supported'
-        *$self->{net_telnet}->{select_supported} = $method eq "open" ?
+        # Taken from the source code of Net::Telnet 3.04, line 710 / 1671
+        *$self->{net_telnet}{select_supported} = $method eq "open" ?
             1 :
             ($^O ne "MSWin32" || -S $self);
     }
@@ -367,10 +366,10 @@ sub _open_method
             _udp_send_packet ($self);
         }
     }
-    # Call the original method and get the return value.
-    # This does not cause infinite recursion thanks to '-callparent' and the magical check.
     # Use unshift to propagate '-callparent' to every other call. This is important!!!
     unshift @params, -callparent;
+    # Call the original method and get the return value.
+    # This does not cause infinite recursion thanks to '-callparent' and the magical check.
     my $v = $self->$method (@params);
     # No packet, no party.
     return $v unless defined $s->{packet};

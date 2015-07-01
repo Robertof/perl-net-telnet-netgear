@@ -4,7 +4,7 @@ use warnings;
 use ExtUtils::MakeMaker;
 
 WriteMakefile (
-    AUTHOR           => 'Roberto Frenna <robertof.public@gmail.com>',
+    AUTHOR           => 'Roberto Frenna <robertof@cpan.org>',
     NAME             => 'Net::Telnet::Netgear',
     VERSION_FROM     => 'lib/Net/Telnet/Netgear.pm',
     ABSTRACT         => 'Generate and send Netgear Telnet-enable packets through Net::Telnet',
