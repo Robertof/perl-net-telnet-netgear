@@ -67,10 +67,10 @@ foreach my $test (@tests)
                 lock ($tcp_client_action);
                 $tcp_client_action = ACTION_SHUTDOWN;
             }
-            # Let the TCP socket close itself
+            # Wait until the socket is closed
             my $csock = IO::Socket::INET->new ("$loopback_ip:$port");
             while (<$csock>) {}
-            $csock->close;
+            close $csock;
         }
         else
         {
@@ -99,13 +99,18 @@ sub setup_socket
         Proto     => $conf{proto},
         $conf{proto} eq "tcp" ? (Listen => 1, ReuseAddr => 1) : ()
     ) || return "can't listen to INADDR_LOOPBACK: $!";
-    threads->create ($conf{code}, $sock)->detach;
+    # Author note: apparently, wrapping the socket reference into an array reference
+    # fixes a mysterious bug with Perl versions < 5.12.5. I have no idea why this fixes it,
+    # and best of all, I don't even know how I came up with this. After 2 hours of debugging, you
+    # just try every stupid thing which comes up in your mind, and guess what? It worked!
+    threads->create ($conf{code}, [$sock])->detach;
+    #                             ^     ^ 2015-08-15 Thank you
     exists $conf{port} ? 1 : $sock->sockport();
 }
 
 sub handle_tcp_connection
 {
-    my $sock = shift;
+    my $sock = shift->[0];
     while (my $client = $sock->accept())
     {
         lock ($tcp_client_action);
@@ -125,17 +130,19 @@ sub handle_tcp_connection
         }
         elsif ($tcp_client_action == ACTION_SHUTDOWN)
         {
-            close $sock;
-            return;
+            close $client;
+            last;
         }
         # $tcp_client_action == ACTION_ACCEPT_CLIENTS, reply with "OK"
         print $client "OK\n";
     }
+    close $sock;
+    return;
 }
 
 sub handle_udp_messages
 {
-    my $sock = shift;
+    my $sock = shift->[0];
     my $buf;
     while ($sock->recv ($buf, 0x80, 0))
     {
@@ -144,7 +151,7 @@ sub handle_udp_messages
             # Re-open the TCP socket with the port defined before
             my $r = setup_socket proto => 'tcp', port => $port, code => \&handle_tcp_connection;
             return diag ("Can't re-open the TCP socket: $r") if $r ne 1;
-            # Clients are now allowed
+            # Allow clients once again
             lock ($tcp_client_action);
             $tcp_client_action = ACTION_ACCEPT_CLIENTS;
         }
