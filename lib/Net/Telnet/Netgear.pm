@@ -305,10 +305,10 @@ sub _udp_send_packet
         PeerAddr => $host,
         PeerPort => $port,
         Proto    => "udp"
-    ) || return $self->error ("Error while creating the UDP socket for $host:$port: $!");
+    ) || return $self->error ("Error while creating the UDP socket for $host:$port: $!\n");
     binmode $sock;
     $sock->send ($s->{packet})
-        || return $self->error ("Can't send the packet to $host:$port (UDP): $!");
+        || return $self->error ("Can't send the packet to $host:$port (UDP): $!\n");
     close $sock;
     # Wait packet_delay seconds.
     select undef, undef, undef, $self->packet_delay;
@@ -387,15 +387,15 @@ sub _open_method
             # Wait for a bit. (it's Netgear's fault)
             select undef, undef, undef, $self->packet_delay;
             # Re-open. If we can't read again, then I have bad news.
-            return $self->error ("Can't reopen the socket after sending the Telnet packet.")
-                unless $self->$method (@params);
-            return $self->error ("Can't read from the socket after sending the Telnet packet.")
+            return $self->error ("Can't reopen the socket after sending the Telnet packet: " .
+                                 $self->errmsg . "\n") unless $self->$method (@params);
+            return $self->error ("Can't read from the socket after sending the Telnet packet.\n")
                 if _can_read ($self, $s->{timeout}, -nowarnings) != 1;
         }
         elsif ($can_read == -1) # Error
         {
             return $self->error (
-                "Read error while trying to determine if the Telnet packet is necessary."
+                "Read error while trying to determine if the Telnet packet is necessary.\n"
             );
         } # $can_read == 1 -> OK, but we don't care if it is
     }
