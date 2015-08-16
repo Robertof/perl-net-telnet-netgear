@@ -42,6 +42,7 @@ BEGIN {
 # Storage variables
 my $tcp_client_action :shared; # boolean
 my $loopback_ip = IO::Socket::INET::inet_ntoa (IO::Socket::INET::INADDR_LOOPBACK); # IP address
+my $force_skip; # In case of emergency, break the glass...
 # setup_socket returns a port number when the argument 'port' is not specified
 my $port = setup_socket proto => 'tcp', code => \&handle_tcp_connection;
 
@@ -58,19 +59,35 @@ my $packet = Net::Telnet::Netgear::Packet->new (@packet_gen_args)->get_packet;
 foreach my $test (@tests)
 {
     SKIP: {
-        if ($test->{protocol} eq "udp")
+        if ($test->{protocol} eq 'udp')
         {
             # Skip UDP tests if $udp_ok isn't 1
-            skip $udp_ok, 2 if $test->{protocol} eq "udp" && $udp_ok ne 1;
+            skip $force_skip || $udp_ok, 2
+                if defined $force_skip or ($test->{protocol} eq 'udp' and $udp_ok ne 1);
             # Kick incoming clients on the TCP socket (which will be closed)
             {
                 lock ($tcp_client_action);
                 $tcp_client_action = ACTION_SHUTDOWN;
             }
             # Wait until the socket is closed
-            my $csock = IO::Socket::INET->new ("$loopback_ip:$port");
-            while (<$csock>) {}
-            close $csock;
+            eval {
+                local $SIG{ALRM} = sub { die "deadlock\n" };
+                alarm 5;
+                while (my $csock = IO::Socket::INET->new ("$loopback_ip:$port"))
+                {
+                    while (<$csock>) {}
+                    close $csock;
+                }
+                alarm 0; 1
+            } or do {
+                die "Something went wrong!\n$@\n" if $@ ne "deadlock\n";
+                diag 'WARNING: deadlock detected! This means that something went terribly wrong ',
+                     'while executing the test, and is probably due to an old & broken Perl ',
+                     'version. Since this is a problem only related to this test and not to the ',
+                     'library, bailing out with no error.';
+                $force_skip = 'broken test';
+                skip $force_skip, 2;
+            }
         }
         else
         {
