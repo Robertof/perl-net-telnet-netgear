@@ -3,7 +3,7 @@ use strict;
 use warnings;
 use parent "Net::Telnet::Netgear::Packet";
 use Carp;
-use Crypt::ECB;
+use Crypt::ECB ();
 use Digest::MD5;
 
 our @CARP_NOT = qw ( Net::Telnet::Netgear::Packet );
@@ -50,7 +50,11 @@ sub get_packet
         _left_justify (Digest::MD5::md5 ($text) . $text, 0x80, "\x00")
     );
     my $cipher = Crypt::ECB->new;
-    $cipher->padding (PADDING_NONE);
+    # Compatibility note: Crypt::ECB, since version 2.00, drops the constant `PADDING_NONE` and
+    # replaces its usage with a string.
+    $cipher->padding (Crypt::ECB->can ("PADDING_NONE") ? Crypt::ECB->PADDING_NONE : "none");
+    # The method `cipher` now dies when something goes wrong instead of returning a falsey value.
+    # However, in this case, the old implementation works fine.
     $cipher->cipher ("Blowfish")
         || die "Blowfish not available: ", $cipher->errstring;
     $cipher->key ("AMBIT_TELNET_ENABLE+" . $self->{password});
