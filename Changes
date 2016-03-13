@@ -1,3 +1,7 @@
+0.05 2016-03-13
+  - Handle an incompatible API change of Crypt::ECB.
+    This module now works with pre- and post- 2.00 versions of Crypt::ECB.
+
 0.04 2015-06-29
   - The "Old Perl versions & Strange systems Update"
   - Replaced the operator "//" with something friendlier to old Perls.

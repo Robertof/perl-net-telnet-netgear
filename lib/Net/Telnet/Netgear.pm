@@ -8,7 +8,7 @@ use IO::Socket::INET;
 use Net::Telnet::Netgear::Packet;
 use Scalar::Util ();
 
-our $VERSION = "0.04";
+our $VERSION = "0.05";
 
 # Whether to die when 'select' is not available. (see 'THE MAGIC BEHIND TIMEOUTS')
 our $DIE_ON_SELECT_UNAVAILABLE = 0;
